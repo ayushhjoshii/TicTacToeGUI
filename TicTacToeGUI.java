@@ -1,4 +1,5 @@
 import java.awt.*;
+import java.util.Random;
 import javax.swing.*;
 
 public class TicTacToeGUI extends JFrame {
@@ -6,13 +7,22 @@ public class TicTacToeGUI extends JFrame {
     private char currentPlayer = 'X';
     private JLabel statusLabel;
 
+    private boolean isVsComputer = false;
+    private String playerXName = "Player X";
+    private String playerOName = "Player O";
+    private String difficulty = "Easy";
+    private Random random = new Random();
+
     public TicTacToeGUI() {
+        // Get game mode and player names
+        chooseGameMode();
+
         setTitle("Tic Tac Toe");
         setSize(400, 450);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        statusLabel = new JLabel("Player X's turn");
+        statusLabel = new JLabel(playerXName + "'s turn (X)");
         statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
         statusLabel.setFont(new Font("Arial", Font.BOLD, 16));
         add(statusLabel, BorderLayout.NORTH);
@@ -22,6 +32,46 @@ public class TicTacToeGUI extends JFrame {
         add(boardPanel, BorderLayout.CENTER);
 
         setVisible(true);
+    }
+
+    private void chooseGameMode() {
+        String[] options = {"Two Player", "Play vs Computer"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Choose Game Mode:",
+                "Tic Tac Toe",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (choice == 1) {
+            isVsComputer = true;
+            playerXName = JOptionPane.showInputDialog(this, "Enter your name (Player X):");
+            if (playerXName == null || playerXName.trim().isEmpty()) playerXName = "Player X";
+            playerOName = "Computer";
+            chooseDifficulty();
+        } else {
+            isVsComputer = false;
+            playerXName = JOptionPane.showInputDialog(this, "Enter name for Player X:");
+            if (playerXName == null || playerXName.trim().isEmpty()) playerXName = "Player X";
+            playerOName = JOptionPane.showInputDialog(this, "Enter name for Player O:");
+            if (playerOName == null || playerOName.trim().isEmpty()) playerOName = "Player O";
+        }
+    }
+
+    private void chooseDifficulty() {
+        String[] levels = {"Easy", "Medium", "Hard"};
+        difficulty = (String) JOptionPane.showInputDialog(
+                this,
+                "Choose Difficulty Level:",
+                "Difficulty",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                levels,
+                levels[0]);
+        if (difficulty == null) difficulty = "Easy";
     }
 
     private void initializeBoard(JPanel boardPanel) {
@@ -36,10 +86,10 @@ public class TicTacToeGUI extends JFrame {
                 final int col = j;
 
                 btn.addActionListener(e -> {
-                    if (btn.getText().equals("")) {
+                    if (btn.getText().equals("") && (!isVsComputer || currentPlayer == 'X')) {
                         btn.setText(String.valueOf(currentPlayer));
                         if (checkWin(row, col)) {
-                            statusLabel.setText("Player " + currentPlayer + " wins!");
+                            statusLabel.setText(getCurrentPlayerName() + " wins!");
                             disableBoard();
                             askForRestart();
                         } else if (isBoardFull()) {
@@ -47,7 +97,10 @@ public class TicTacToeGUI extends JFrame {
                             askForRestart();
                         } else {
                             switchPlayer();
-                            statusLabel.setText("Player " + currentPlayer + "'s turn");
+                            statusLabel.setText(getCurrentPlayerName() + "'s turn (" + currentPlayer + ")");
+                            if (isVsComputer && currentPlayer == 'O') {
+                                computerMove();
+                            }
                         }
                     }
                 });
@@ -55,6 +108,40 @@ public class TicTacToeGUI extends JFrame {
                 boardPanel.add(btn);
             }
         }
+    }
+
+    private void computerMove() {
+        Timer timer = new Timer(500, e -> {
+            int[] move = getComputerMove();
+            buttons[move[0]][move[1]].setText("O");
+
+            if (checkWin(move[0], move[1])) {
+                statusLabel.setText(playerOName + " wins!");
+                disableBoard();
+                askForRestart();
+            } else if (isBoardFull()) {
+                statusLabel.setText("It's a draw!");
+                askForRestart();
+            } else {
+                switchPlayer();
+                statusLabel.setText(getCurrentPlayerName() + "'s turn (" + currentPlayer + ")");
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private int[] getComputerMove() {
+        // For now, all levels behave the same (random move).
+        // You can upgrade logic here based on difficulty
+        for (int i = 0; i < 100; i++) {
+            int r = random.nextInt(3);
+            int c = random.nextInt(3);
+            if (buttons[r][c].getText().equals("")) {
+                return new int[]{r, c};
+            }
+        }
+        return new int[]{0, 0}; // fallback
     }
 
     private void switchPlayer() {
@@ -117,7 +204,7 @@ public class TicTacToeGUI extends JFrame {
             }
         }
         currentPlayer = 'X';
-        statusLabel.setText("Player X's turn");
+        statusLabel.setText(getCurrentPlayerName() + "'s turn (" + currentPlayer + ")");
     }
 
     private void askForRestart() {
@@ -129,8 +216,11 @@ public class TicTacToeGUI extends JFrame {
         }
     }
 
+    private String getCurrentPlayerName() {
+        return currentPlayer == 'X' ? playerXName : playerOName;
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new TicTacToeGUI());
     }
 }
-
